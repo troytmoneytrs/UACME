@@ -1,4 +1,4 @@
-name: Build UACME Akagi64
+name: Build UACME Akagi64 (Fixed for v143)
 
 on:
   push:
@@ -7,38 +7,47 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest   # Required for Visual Studio + Windows SDK
+    runs-on: windows-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup MSBuild
+    - name: Setup MSBuild (VS 2022)
       uses: microsoft/setup-msbuild@v2
 
-    - name: Restore NuGet packages (if any)
+    - name: Retarget all projects from v145 to v143
+      shell: pwsh
+      run: |
+        # Find and replace PlatformToolset v145 → v143 in all .vcxproj files
+        Get-ChildItem -Path . -Recurse -Filter *.vcxproj | ForEach-Object {
+          (Get-Content $_.FullName) -replace 'v145', 'v143' | Set-Content $_.FullName
+          Write-Host "Retargeted: $($_.Name)"
+        }
+
+    - name: Restore NuGet packages
       run: msbuild Source\uacme.sln -t:Restore -p:Configuration=Release -p:Platform=x64
 
-    - name: Build Akatsuki64.dll (payload)
-      run: msbuild Source\Akatsuki\Akatsuki.vcxproj -p:Configuration=Release -p:Platform=x64
+    - name: Build Akatsuki64.dll
+      run: msbuild Source\Akatsuki\Akatsuki.vcxproj -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143
 
-    - name: Build Fubuki64.dll (payload)
-      run: msbuild Source\Fubuki\Fubuki.vcxproj -p:Configuration=Release -p:Platform=x64
+    - name: Build Fubuki64.dll
+      run: msbuild Source\Fubuki\Fubuki.vcxproj -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143
 
-    - name: Build Naka64.exe (encryptor)
-      run: msbuild Source\Naka\Naka.vcxproj -p:Configuration=Release -p:Platform=x64
+    - name: Build Naka64.exe
+      run: msbuild Source\Naka\Naka.vcxproj -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143
 
     - name: Run Naka to encrypt payloads
       working-directory: Source\Akagi\bin
       run: |
         ..\..\..\Naka\x64\Release\Naka64.exe
 
-    - name: Build Akagi64.exe (main executable)
-      run: msbuild Source\Akagi\Akagi.vcxproj -p:Configuration=Release -p:Platform=x64
+    - name: Build Akagi64.exe
+      run: msbuild Source\Akagi\Akagi.vcxproj -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143
 
-    - name: Upload Akagi64.exe artifact
+    - name: Upload Akagi64.exe
       uses: actions/upload-artifact@v4
       with:
-        name: UACME-Akagi64
+        name: UACME-Akagi64-Fixed
         path: Source\Akagi\x64\Release\Akagi64.exe
         if-no-files-found: error
