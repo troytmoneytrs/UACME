@@ -1,0 +1,44 @@
+name: Build UACME Akagi64
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest   # Required for Visual Studio + Windows SDK
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Restore NuGet packages (if any)
+      run: msbuild Source\uacme.sln -t:Restore -p:Configuration=Release -p:Platform=x64
+
+    - name: Build Akatsuki64.dll (payload)
+      run: msbuild Source\Akatsuki\Akatsuki.vcxproj -p:Configuration=Release -p:Platform=x64
+
+    - name: Build Fubuki64.dll (payload)
+      run: msbuild Source\Fubuki\Fubuki.vcxproj -p:Configuration=Release -p:Platform=x64
+
+    - name: Build Naka64.exe (encryptor)
+      run: msbuild Source\Naka\Naka.vcxproj -p:Configuration=Release -p:Platform=x64
+
+    - name: Run Naka to encrypt payloads
+      working-directory: Source\Akagi\bin
+      run: |
+        ..\..\..\Naka\x64\Release\Naka64.exe
+
+    - name: Build Akagi64.exe (main executable)
+      run: msbuild Source\Akagi\Akagi.vcxproj -p:Configuration=Release -p:Platform=x64
+
+    - name: Upload Akagi64.exe artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: UACME-Akagi64
+        path: Source\Akagi\x64\Release\Akagi64.exe
+        if-no-files-found: error
