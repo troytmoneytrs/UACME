@@ -1,4 +1,4 @@
-name: Build UACME Akagi64 (Full Solution - Fixed Includes, Paths, Linking + /MT)
+name: Build UACME Akagi64 (Full Solution - Fixed Includes + Forced Linking + /MT)
 
 on:
   push:
@@ -16,36 +16,53 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Fix includes and retarget to v143
+      - name: Fix includes, retarget, and FORCE linker libraries
         shell: pwsh
         run: |
           # Retarget toolset
           Get-ChildItem -Path Source -Recurse -Filter *.vcxproj | ForEach-Object {
             (Get-Content $_.FullName) -replace 'v145', 'v143' | Set-Content $_.FullName
-            Write-Host "Retargeted: $($_.Name)"
           }
 
-          # Aggressive fix for all include statements
+          # Fix all include statements
           Get-ChildItem -Path Source -Recurse -Filter *.c -File | ForEach-Object {
             $content = Get-Content $_.FullName -Raw
             $content = $content -replace '(?i)shared\\shared\.h', 'Shared\\shared.h'
             $content = $content -replace '(?i)#include\s+["<]shared/shared\.h["<]', '#include "Shared/shared.h"'
             Set-Content $_.FullName $content
-            Write-Host "Fixed includes in: $($_.Name)"
           }
 
-      - name: Build FULL UACME with /MT Static + Forced Libraries
+          # FORCE all required libraries into EVERY .vcxproj (especially Akatsuki)
+          $libs = "kernel32.lib;user32.lib;gdi32.lib;advapi32.lib;secur32.lib;ole32.lib;shell32.lib"
+          Get-ChildItem -Path Source -Recurse -Filter *.vcxproj | ForEach-Object {
+            $xml = [xml](Get-Content $_.FullName)
+            $ns = New-Object System.Xml.XmlNamespaceManager($xml.NameTable)
+            $ns.AddNamespace("ns", "http://schemas.microsoft.com/developer/msbuild/2003")
+
+            $linkNode = $xml.SelectSingleNode("//ns:Link", $ns)
+            if ($linkNode) {
+              $depNode = $linkNode.SelectSingleNode("ns:AdditionalDependencies", $ns)
+              if ($depNode) {
+                $depNode.InnerText = "$libs; $($depNode.InnerText)"
+              } else {
+                $newDep = $xml.CreateElement("AdditionalDependencies", $ns.LookupNamespace("ns"))
+                $newDep.InnerText = $libs
+                $linkNode.AppendChild($newDep) | Out-Null
+              }
+            }
+            $xml.Save($_.FullName)
+            Write-Host "Forced libraries into: $($_.Name)"
+          }
+
+      - name: Build FULL UACME with /MT Static
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" > nul
-          
-          msbuild Source\uacme.sln ^
-            -t:Build ^
-            -p:Configuration=Release ^
-            -p:Platform=x64 ^
-            -p:PlatformToolset=v143 ^
-            -p:RuntimeLibrary=MultiThreaded ^
-            -p:UseOfMfc=Static ^
-            -p:AdditionalIncludeDirectories="..\Shared;$(IncludePath)" ^
-            -p:AdditionalDependencies="kernel32.lib;user32.lib;gdi32.lib;advapi32.lib;secur32.lib;ole32.lib;shell32.lib;%(AdditionalDependencies)" ^
-            -verbosity:minimal
+          msbuild Source\uacme.sln -t:Build -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143 -p:RuntimeLibrary=MultiThreaded -p:UseOfMfc=Static -verbosity:minimal
+
+      - name: Upload Akagi64.exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: UACME-Akagi64-Full-MT-Fixed
+          path: Source\Akagi\output\x64\Release\Akagi64.exe
+          if-no-files-found: warn
