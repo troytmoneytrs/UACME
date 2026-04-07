@@ -1,4 +1,4 @@
-name: Build UACME Akagi64 (Full Solution - Fixed Includes + Forced Linking + /MT)
+name: Build UACME Akagi64 (Full Solution - Forced Linking + /MT Static)
 
 on:
   push:
@@ -16,15 +16,13 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Fix includes, retarget, and FORCE linker libraries
+      - name: Fix includes, retarget, and FORCE all libraries into Akatsuki
         shell: pwsh
         run: |
-          # Retarget toolset
+          # Retarget and fix includes
           Get-ChildItem -Path Source -Recurse -Filter *.vcxproj | ForEach-Object {
             (Get-Content $_.FullName) -replace 'v145', 'v143' | Set-Content $_.FullName
           }
-
-          # Fix all include statements
           Get-ChildItem -Path Source -Recurse -Filter *.c -File | ForEach-Object {
             $content = Get-Content $_.FullName -Raw
             $content = $content -replace '(?i)shared\\shared\.h', 'Shared\\shared.h'
@@ -32,33 +30,33 @@ jobs:
             Set-Content $_.FullName $content
           }
 
-          # FORCE all required libraries into EVERY .vcxproj (especially Akatsuki)
-          $libs = "kernel32.lib;user32.lib;gdi32.lib;advapi32.lib;secur32.lib;ole32.lib;shell32.lib"
+          # FORCE libraries directly into Akatsuki.vcxproj (and others)
+          $requiredLibs = "kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;secur32.lib"
           Get-ChildItem -Path Source -Recurse -Filter *.vcxproj | ForEach-Object {
             $xml = [xml](Get-Content $_.FullName)
             $ns = New-Object System.Xml.XmlNamespaceManager($xml.NameTable)
             $ns.AddNamespace("ns", "http://schemas.microsoft.com/developer/msbuild/2003")
 
-            $linkNode = $xml.SelectSingleNode("//ns:Link", $ns)
-            if ($linkNode) {
-              $depNode = $linkNode.SelectSingleNode("ns:AdditionalDependencies", $ns)
+            $linkGroup = $xml.SelectSingleNode("//ns:ItemDefinitionGroup/ns:Link", $ns)
+            if ($linkGroup) {
+              $depNode = $linkGroup.SelectSingleNode("ns:AdditionalDependencies", $ns)
               if ($depNode) {
-                $depNode.InnerText = "$libs; $($depNode.InnerText)"
+                $depNode.InnerText = "$requiredLibs;$($depNode.InnerText)"
               } else {
-                $newDep = $xml.CreateElement("AdditionalDependencies", $ns.LookupNamespace("ns"))
-                $newDep.InnerText = $libs
-                $linkNode.AppendChild($newDep) | Out-Null
+                $newNode = $xml.CreateElement("AdditionalDependencies", $ns.LookupNamespace("ns"))
+                $newNode.InnerText = $requiredLibs
+                $linkGroup.AppendChild($newNode) | Out-Null
               }
             }
             $xml.Save($_.FullName)
-            Write-Host "Forced libraries into: $($_.Name)"
+            Write-Host "Forced libraries into $($_.Name)"
           }
 
-      - name: Build FULL UACME with /MT Static
+      - name: Build FULL UACME with /MT
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" > nul
-          msbuild Source\uacme.sln -t:Build -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143 -p:RuntimeLibrary=MultiThreaded -p:UseOfMfc=Static -verbosity:minimal
+          msbuild Source\uacme.sln -t:Build -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143 -p:RuntimeLibrary=MultiThreaded -verbosity:minimal
 
       - name: Upload Akagi64.exe
         uses: actions/upload-artifact@v4
