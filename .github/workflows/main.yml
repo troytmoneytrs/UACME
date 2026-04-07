@@ -1,4 +1,4 @@
-name: Build UACME Akagi64 (Full + Naka Encryption + /MT Static)
+name: Build UACME Akagi64 (Full + Naka Fix + /MT)
 
 on:
   push:
@@ -16,26 +16,28 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Fix ALL include paths and casing
+      - name: Fix includes + Copy Shared folder for Naka
         shell: pwsh
         run: |
-          Write-Host "Fixing includes and retargeting..."
-          
-          # Retarget toolset
+          Write-Host "Fixing includes and copying Shared folder..."
+
+          # Retarget
           Get-ChildItem -Path Source -Recurse -Filter *.vcxproj | ForEach-Object {
             (Get-Content $_.FullName) -replace 'v145', 'v143' | Set-Content $_.FullName
           }
 
-          # Fix shared.h and libinc.h in all .c and .h files
+          # Aggressive include fix for shared.h and libinc.h
           Get-ChildItem -Path Source -Recurse -Include *.c,*.h -File | ForEach-Object {
             $content = Get-Content $_.FullName -Raw
-            $content = $content -replace '(?i)shared\\shared\.h', 'Shared\\shared.h'
-            $content = $content -replace '(?i)shared\\libinc\.h', 'Shared\\libinc.h'
+            $content = $content -replace '(?i)shared\\(shared|libinc)\.h', 'Shared\\$1.h'
             $content = $content -replace '(?i)#include\s+["<]shared/(shared|libinc)\.h["<]', '#include "Shared/$1.h"'
             Set-Content $_.FullName $content
           }
 
-          Write-Host "Include fixes completed."
+          # Copy Shared folder next to Naka so relative include works reliably
+          Copy-Item -Path "Source\Shared" -Destination "Source\Naka\Shared" -Recurse -Force
+
+          Write-Host "Shared folder copied and includes fixed."
 
       - name: Build Akatsuki + Fubuki + Naka
         shell: cmd
@@ -43,9 +45,9 @@ jobs:
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" > nul
           msbuild Source\Akatsuki\Akatsuki.vcxproj -t:Build -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143 -p:RuntimeLibrary=MultiThreaded -verbosity:minimal
           msbuild Source\Fubuki\Fubuki.vcxproj -t:Build -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143 -p:RuntimeLibrary=MultiThreaded -verbosity:minimal
-          msbuild Source\Naka\Naka.vcxproj -t:Build -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143 -p:RuntimeLibrary=MultiThreaded -verbosity:minimal
+          msbuild Source\Naka\Naka.vcxproj -t:Build -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143 -p:RuntimeLibrary=MultiThreaded -p:AdditionalIncludeDirectories="..\Shared;$(IncludePath)" -verbosity:minimal
 
-      - name: Run Naka Encryption + Copy to Akagi\bin
+      - name: Run Naka Encryption + Prepare Akagi
         shell: cmd
         run: |
           cd Source\Naka\output\x64\Release
