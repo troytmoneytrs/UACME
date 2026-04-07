@@ -1,4 +1,4 @@
-name: Build UACME Akagi64 (Full Solution - Forced Linking + /MT Static)
+name: Build UACME Akagi64 (Full + Naka Encryption + /MT)
 
 on:
   push:
@@ -16,51 +16,48 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Fix includes, retarget, and FORCE all libraries into Akatsuki
+      - name: Fix includes, retarget, and force libraries
         shell: pwsh
         run: |
-          # Retarget and fix includes
           Get-ChildItem -Path Source -Recurse -Filter *.vcxproj | ForEach-Object {
             (Get-Content $_.FullName) -replace 'v145', 'v143' | Set-Content $_.FullName
           }
           Get-ChildItem -Path Source -Recurse -Filter *.c -File | ForEach-Object {
             $content = Get-Content $_.FullName -Raw
             $content = $content -replace '(?i)shared\\shared\.h', 'Shared\\shared.h'
-            $content = $content -replace '(?i)#include\s+["<]shared/shared\.h["<]', '#include "Shared/shared.h"'
             Set-Content $_.FullName $content
           }
 
-          # FORCE libraries directly into Akatsuki.vcxproj (and others)
-          $requiredLibs = "kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;secur32.lib"
-          Get-ChildItem -Path Source -Recurse -Filter *.vcxproj | ForEach-Object {
-            $xml = [xml](Get-Content $_.FullName)
-            $ns = New-Object System.Xml.XmlNamespaceManager($xml.NameTable)
-            $ns.AddNamespace("ns", "http://schemas.microsoft.com/developer/msbuild/2003")
-
-            $linkGroup = $xml.SelectSingleNode("//ns:ItemDefinitionGroup/ns:Link", $ns)
-            if ($linkGroup) {
-              $depNode = $linkGroup.SelectSingleNode("ns:AdditionalDependencies", $ns)
-              if ($depNode) {
-                $depNode.InnerText = "$requiredLibs;$($depNode.InnerText)"
-              } else {
-                $newNode = $xml.CreateElement("AdditionalDependencies", $ns.LookupNamespace("ns"))
-                $newNode.InnerText = $requiredLibs
-                $linkGroup.AppendChild($newNode) | Out-Null
-              }
-            }
-            $xml.Save($_.FullName)
-            Write-Host "Forced libraries into $($_.Name)"
-          }
-
-      - name: Build FULL UACME with /MT
+      - name: Build Akatsuki + Fubuki + Naka with /MT
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" > nul
-          msbuild Source\uacme.sln -t:Build -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143 -p:RuntimeLibrary=MultiThreaded -verbosity:minimal
+          msbuild Source\Akatsuki\Akatsuki.vcxproj -t:Build -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143 -p:RuntimeLibrary=MultiThreaded -verbosity:minimal
+          msbuild Source\Fubuki\Fubuki.vcxproj -t:Build -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143 -p:RuntimeLibrary=MultiThreaded -verbosity:minimal
+          msbuild Source\Naka\Naka.vcxproj -t:Build -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143 -p:RuntimeLibrary=MultiThreaded -verbosity:minimal
+
+      - name: Run Naka Encryption + Copy to Akagi\bin
+        shell: cmd
+        run: |
+          cd Source\Naka\output\x64\Release
+          Naka64.exe
+          Naka64.exe --stable
+          mkdir ..\..\..\Akagi\bin 2>nul
+          copy ..\..\..\Akatsuki\output\x64\Release\Akatsuki64.* ..\..\..\Akagi\bin\ >nul
+          copy ..\..\..\Fubuki\output\x64\Release\Fubuki64.* ..\..\..\Akagi\bin\ >nul
+          copy secrets64.bin ..\..\..\Akagi\bin\ >nul
+          copy *.cd ..\..\..\Akagi\bin\ >nul
+          copy *.key ..\..\..\Akagi\bin\ >nul
+
+      - name: Build Akagi (Final EXE)
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" > nul
+          msbuild Source\Akagi\Akagi.vcxproj -t:Build -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143 -p:RuntimeLibrary=MultiThreaded -verbosity:minimal
 
       - name: Upload Akagi64.exe
         uses: actions/upload-artifact@v4
         with:
-          name: UACME-Akagi64-Full-MT-Fixed
+          name: UACME-Akagi64-Full-Naka-Fixed
           path: Source\Akagi\output\x64\Release\Akagi64.exe
-          if-no-files-found: warn
+          if-no-files-found: error
