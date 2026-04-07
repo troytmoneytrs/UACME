@@ -1,4 +1,4 @@
-name: Build UACME Akagi64 (Full Solution - Fixed Includes & Paths)
+name: Build UACME Akagi64 (Full Solution - Fixed Includes & Paths + /MT Static)
 
 on:
   push:
@@ -10,31 +10,41 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout UACME
-      uses: actions/checkout@v4
+      - name: Checkout UACME
+        uses: actions/checkout@v4
 
-    - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v2
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
 
-    - name: Retarget v145 → v143 and fix include casing
-      shell: pwsh
-      run: |
-        # Retarget toolset
-        Get-ChildItem -Path Source -Recurse -Filter *.vcxproj | ForEach-Object {
-          (Get-Content $_.FullName) -replace 'v145', 'v143' | Set-Content $_.FullName
-          Write-Host "Retargeted: $($_.Name)"
-        }
-        # Fix include paths (shared → Shared)
-        Get-ChildItem -Path Source -Recurse -Filter *.c | ForEach-Object {
-          (Get-Content $_.FullName) -replace 'shared\\shared\.h', 'Shared\\shared.h' | Set-Content $_.FullName
-        }
+      - name: Retarget v145 → v143 and fix include casing
+        shell: pwsh
+        run: |
+          # Retarget toolset
+          Get-ChildItem -Path Source -Recurse -Filter *.vcxproj | ForEach-Object {
+            (Get-Content $_.FullName) -replace 'v145', 'v143' | Set-Content $_.FullName
+            Write-Host "Retargeted: $($_.Name)"
+          }
+          # Fix include paths (shared → Shared)
+          Get-ChildItem -Path Source -Recurse -Filter *.c | ForEach-Object {
+            (Get-Content $_.FullName) -replace 'shared\\shared\.h', 'Shared\\shared.h' | Set-Content $_.FullName
+          }
 
-    - name: Build FULL SOLUTION (this resolves all includes correctly)
-      run: msbuild Source\uacme.sln -t:Build -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143 -verbosity:minimal
+      - name: Build FULL SOLUTION with /MT (Static Runtime)
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" > nul
+          msbuild Source\uacme.sln ^
+            -t:Build ^
+            -p:Configuration=Release ^
+            -p:Platform=x64 ^
+            -p:PlatformToolset=v143 ^
+            -p:RuntimeLibrary=MultiThreaded ^
+            -p:UseOfMfc=Static ^
+            -verbosity:minimal
 
-    - name: Upload Akagi64.exe (correct output location)
-      uses: actions/upload-artifact@v4
-      with:
-        name: UACME-Akagi64-Final
-        path: Source\Akagi\output\x64\Release\Akagi64.exe
-        if-no-files-found: warn   # changed to warn so you see log even if minor issue
+      - name: Upload Akagi64.exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: UACME-Akagi64-Full-MT
+          path: Source\Akagi\output\x64\Release\Akagi64.exe
+          if-no-files-found: warn
