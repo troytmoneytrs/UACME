@@ -1,4 +1,4 @@
-name: Build UACME Akagi64 (Full + Naka Encryption + /MT)
+name: Build UACME Akagi64 (Full + Naka Encryption + /MT Static)
 
 on:
   push:
@@ -16,19 +16,66 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Fix includes, retarget, and force libraries
+      - name: Fix ALL includes, casing, and force paths + libraries
         shell: pwsh
         run: |
+          # Retarget toolset
           Get-ChildItem -Path Source -Recurse -Filter *.vcxproj | ForEach-Object {
             (Get-Content $_.FullName) -replace 'v145', 'v143' | Set-Content $_.FullName
+          }
+
+          # Fix every possible include variation for shared folder and libinc.h
+          Get-ChildItem -Path Source -Recurse -Filter *.h -File | ForEach-Object {
+            $content = Get-Content $_.FullName -Raw
+            $content = $content -replace '(?i)shared\\libinc\.h', 'Shared\\libinc.h'
+            $content = $content -replace '(?i)shared/libinc\.h', 'Shared/libinc.h'
+            $content = $content -replace '(?i)#include\s+["<]shared/libinc\.h["<]', '#include "Shared/libinc.h"'
+            Set-Content $_.FullName $content
           }
           Get-ChildItem -Path Source -Recurse -Filter *.c -File | ForEach-Object {
             $content = Get-Content $_.FullName -Raw
             $content = $content -replace '(?i)shared\\shared\.h', 'Shared\\shared.h'
+            $content = $content -replace '(?i)#include\s+["<]shared/shared\.h["<]', '#include "Shared/shared.h"'
             Set-Content $_.FullName $content
           }
 
-      - name: Build Akatsuki + Fubuki + Naka with /MT
+          # Force correct include path and libraries into EVERY .vcxproj
+          $requiredLibs = "kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;secur32.lib"
+          Get-ChildItem -Path Source -Recurse -Filter *.vcxproj | ForEach-Object {
+            $xml = [xml](Get-Content $_.FullName)
+            $ns = New-Object System.Xml.XmlNamespaceManager($xml.NameTable)
+            $ns.AddNamespace("ns", "http://schemas.microsoft.com/developer/msbuild/2003")
+
+            # Add include directory
+            $clNode = $xml.SelectSingleNode("//ns:ItemDefinitionGroup/ns:ClCompile", $ns)
+            if ($clNode) {
+              $incNode = $clNode.SelectSingleNode("ns:AdditionalIncludeDirectories", $ns)
+              if ($incNode) {
+                $incNode.InnerText = "..\Shared;$(IncludePath);$($incNode.InnerText)"
+              } else {
+                $newInc = $xml.CreateElement("AdditionalIncludeDirectories", $ns.LookupNamespace("ns"))
+                $newInc.InnerText = "..\Shared;$(IncludePath)"
+                $clNode.AppendChild($newInc) | Out-Null
+              }
+            }
+
+            # Force libraries
+            $linkNode = $xml.SelectSingleNode("//ns:ItemDefinitionGroup/ns:Link", $ns)
+            if ($linkNode) {
+              $depNode = $linkNode.SelectSingleNode("ns:AdditionalDependencies", $ns)
+              if ($depNode) {
+                $depNode.InnerText = "$requiredLibs;$($depNode.InnerText)"
+              } else {
+                $newDep = $xml.CreateElement("AdditionalDependencies", $ns.LookupNamespace("ns"))
+                $newDep.InnerText = $requiredLibs
+                $linkNode.AppendChild($newDep) | Out-Null
+              }
+            }
+            $xml.Save($_.FullName)
+            Write-Host "Fixed project: $($_.Name)"
+          }
+
+      - name: Build Akatsuki + Fubuki + Naka
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" > nul
@@ -36,7 +83,7 @@ jobs:
           msbuild Source\Fubuki\Fubuki.vcxproj -t:Build -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143 -p:RuntimeLibrary=MultiThreaded -verbosity:minimal
           msbuild Source\Naka\Naka.vcxproj -t:Build -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143 -p:RuntimeLibrary=MultiThreaded -verbosity:minimal
 
-      - name: Run Naka Encryption + Copy to Akagi\bin
+      - name: Run Naka Encryption + Prepare Akagi bin
         shell: cmd
         run: |
           cd Source\Naka\output\x64\Release
@@ -49,7 +96,7 @@ jobs:
           copy *.cd ..\..\..\Akagi\bin\ >nul
           copy *.key ..\..\..\Akagi\bin\ >nul
 
-      - name: Build Akagi (Final EXE)
+      - name: Build Final Akagi64.exe
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" > nul
