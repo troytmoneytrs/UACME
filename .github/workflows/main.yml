@@ -3,8 +3,76 @@ name: Build UACME Akagi64 (Full + Naka Fix + /MT)
 on:
   push:
     branches: [ main, master ]
+  workflow_dispatch:name: Build UACME Akagi64 (Full + Silent Naka + /MT)
+
+on:
+  push:
+    branches: [ main, master ]
   workflow_dispatch:
 
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout UACME
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Fix includes + Copy Shared for Naka
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path Source -Recurse -Filter *.vcxproj | ForEach-Object {
+            (Get-Content $_.FullName) -replace 'v145', 'v143' | Set-Content $_.FullName
+          }
+          Get-ChildItem -Path Source -Recurse -Include *.c,*.h -File | ForEach-Object {
+            $content = Get-Content $_.FullName -Raw
+            $content = $content -replace '(?i)shared\\(shared|libinc)\.h', 'Shared\\$1.h'
+            $content = $content -replace '(?i)#include\s+["<]shared/(shared|libinc)\.h["<]', '#include "Shared/$1.h"'
+            Set-Content $_.FullName $content
+          }
+          Copy-Item -Path "Source\Shared" -Destination "Source\Naka\Shared" -Recurse -Force
+          Write-Host "Includes fixed and Shared folder copied."
+
+      - name: Build Akatsuki + Fubuki + Naka
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" > nul
+          msbuild Source\Akatsuki\Akatsuki.vcxproj -t:Build -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143 -p:RuntimeLibrary=MultiThreaded -verbosity:minimal
+          msbuild Source\Fubuki\Fubuki.vcxproj -t:Build -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143 -p:RuntimeLibrary=MultiThreaded -verbosity:minimal
+          msbuild Source\Naka\Naka.vcxproj -t:Build -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143 -p:RuntimeLibrary=MultiThreaded -verbosity:minimal
+
+      - name: Run Naka Encryption (Silent + Timeout Protection)
+        shell: cmd
+        run: |
+          cd Source\Naka\output\x64\Release
+          echo Running Naka silently...
+          timeout /t 30 /nobreak >nul 2>&1 || echo Timeout protection active...
+          start /wait Naka64.exe /silent
+          start /wait Naka64.exe --stable /silent
+          echo Naka encryption completed.
+
+          mkdir ..\..\..\Akagi\bin 2>nul
+          copy ..\..\..\Akatsuki\output\x64\Release\Akatsuki64.* ..\..\..\Akagi\bin\ >nul
+          copy ..\..\..\Fubuki\output\x64\Release\Fubuki64.* ..\..\..\Akagi\bin\ >nul
+          copy secrets64.bin ..\..\..\Akagi\bin\ >nul
+          copy *.cd ..\..\..\Akagi\bin\ >nul
+          copy *.key ..\..\..\Akagi\bin\ >nul
+
+      - name: Build Final Akagi64.exe
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" > nul
+          msbuild Source\Akagi\Akagi.vcxproj -t:Build -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143 -p:RuntimeLibrary=MultiThreaded -verbosity:minimal
+
+      - name: Upload Akagi64.exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: UACME-Akagi64-Full-Naka-Fixed
+          path: Source\Akagi\output\x64\Release\Akagi64.exe
+          if-no-files-found: error
 jobs:
   build:
     runs-on: windows-latest
