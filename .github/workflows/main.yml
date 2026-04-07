@@ -49,9 +49,3 @@ jobs:
             -p:AdditionalIncludeDirectories="..\Shared;$(IncludePath)" ^
             -p:AdditionalDependencies="kernel32.lib;user32.lib;gdi32.lib;advapi32.lib;secur32.lib;ole32.lib;shell32.lib;%(AdditionalDependencies)" ^
             -verbosity:minimal
-      - name: Upload Akagi64.exe
-        uses: actions/upload-artifact@v4
-        with:
-          name: UACME-Akagi64-Full-MT-Fixed
-          path: Source\Akagi\output\x64\Release\Akagi64.exe
-          if-no-files-found: warn
