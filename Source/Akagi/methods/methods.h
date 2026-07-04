@@ -1,12 +1,12 @@
 /*******************************************************************************
 *
-*  (C) COPYRIGHT AUTHORS, 2014 - 2025
+*  (C) COPYRIGHT AUTHORS, 2014 - 2026
 *
 *  TITLE:       METHODS.H
 *
-*  VERSION:     3.68
+*  VERSION:     3.70
 *
-*  DATE:        07 Mar 2025
+*  DATE:        21 May 2026
 *
 *  Prototypes and definitions for UAC bypass methods table.
 *
@@ -41,7 +41,7 @@ typedef enum _UCM_METHOD {
     UacMethodInetMgr,           
     UacMethodMMC2,              
     UacMethodSXS,               
-    UacMethodSXSConsent,        //+
+    UacMethodSXSConsent,        
     UacMethodDISM,              //+
     UacMethodComet,             
     UacMethodEnigma0x3,         
@@ -49,14 +49,14 @@ typedef enum _UCM_METHOD {
     UacMethodExpLife,           
     UacMethodSandworm,          
     UacMethodEnigma0x3_3,       
-    UacMethodWow64Logger,       //+
+    UacMethodWow64Logger,       
     UacMethodEnigma0x3_4,       
     UacMethodUiAccess,          //+
     UacMethodMsSettings,        //+
     UacMethodDiskSilentCleanup, //+
     UacMethodTokenMod,          
-    UacMethodJunction,          //+
-    UacMethodSXSDccw,           //+
+    UacMethodJunction,          
+    UacMethodSXSDccw,           
     UacMethodHakril,            //+
     UacMethodCorProfiler,       //+
     UacMethodCOMHandlers,       
@@ -71,41 +71,40 @@ typedef enum _UCM_METHOD {
     UacMethodCreateNewLink,     
     UacMethodDateTimeWriter,    
     UacMethodAcCplAdmin,        
-    UacMethodDirectoryMock,     //+
+    UacMethodDirectoryMock,     
     UacMethodShellSdclt,        //+
     UacMethodEgre55,            
     UacMethodTokenModUiAccess,  //+
     UacMethodShellWSReset,      
     UacMethodSysprep5,          
-    UacMethodEditionUpgradeMgr, //+
+    UacMethodEditionUpgradeMgr, 
     UacMethodDebugObject,       //+
     UacMethodGlupteba,          
     UacMethodShellChangePk,     //+
     UacMethodMsSettings2,       //+
     UacMethodNICPoison,         //+
     UacMethodIeAddOnInstall,    //+
-    UacMethodWscActionProtocol, //+
-    UacMethodFwCplLua2,         //+
+    UacMethodWscActionProtocol, 
+    UacMethodFwCplLua2,         
     UacMethodMsSettingsProtocol,//+
     UacMethodMsStoreProtocol,   //+
-    UacMethodPca,               //+
+    UacMethodPca,               
     UacMethodCurVer,            //+
     UacMethodNICPoison2,        //+
     UacMethodMsdt,              //+
-    UacMethodDotNetSerial,      //+
+    UacMethodDotNetSerial,      
     UacMethodVFServerTaskSched, //+
     UacMethodVFServerDiagProf,  //+
     UacMethodIscsiCpl,          //+
     UacMethodAtlHijack,         //+
-    UacMethodSspiDatagram,      //+
-    UacMethodTokenModUiAccess2, //+
-    UacMethodRequestTrace,      //+
+    UacMethodSspiDatagram,      
+    UacMethodTokenModUiAccess2, 
+    UacMethodRequestTrace,      
     UacMethodQuickAssist,       //+
+    UacMethodCleanMgrAdmin,     //+
     UacMethodMax,
     UacMethodInvalid = 0xabcdef
 } UCM_METHOD;
-
-#define UCM_DISPATCH_ENTRY_MAX UacMethodMax
 
 typedef struct _UCM_METHOD_AVAILABILITY {
     ULONG MinumumWindowsBuildRequired;             //if the current build less this value this method is not working here
@@ -126,6 +125,7 @@ typedef NTSTATUS(CALLBACK *PUCM_API_ROUTINE)(
     _In_ PUCM_PARAMS_BLOCK Parameter)  
 
 typedef struct _UCM_API_DISPATCH_ENTRY {
+    UCM_METHOD MethodId;
     PUCM_API_ROUTINE Routine;               //method to execute
     UCM_METHOD_AVAILABILITY Availability;   //min and max supported Windows builds
     ULONG PayloadResourceId;                //which payload dll must be used

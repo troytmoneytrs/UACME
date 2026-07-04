@@ -38,6 +38,8 @@ akagi64.exe 61 c:\windows\system32\charmap.exe
 
 > **Note**: Since version 3.5.0, all previously "fixed" methods are considered obsolete and have been removed. If you need them, use [v3.2.x branch](https://github.com/hfiref0x/UACME/tree/v3.2.x).
 
+> **Note**: As of version 3.7.0, methods "fixed" between 3.5.0 and 3.7.0 have been removed from UACMe methods table. If you need them, use the [v3.6.x_plus branch](https://github.com/hfiref0x/UACME/tree/v3.6.x_plus) The code for these methods is still available in the current branch for historical purposes.
+
 <details>
   <summary>Keys (click to expand/collapse)</summary>
 
@@ -258,9 +260,9 @@ akagi64.exe 61 c:\windows\system32\charmap.exe
      * Component(s): comctl32.dll
      * Implementation: ucmSXSMethod
      * Works from: Windows 7 (7600)
-     * Fixed in: unfixed :see_no_evil:
-        * How: -
-      * Code status: added in v2.5.0
+     * Fixed in: Windows 11 24H2/25H2 (26100/26200)
+        * How: Internal Windows loader changes, consent!MitigationPolicy->ProcessSignaturePolicy->MicrosoftSignedOnly
+      * Code status: removed starting from v3.7.0 :tractor:
 23. Author: Leo Davidson derivative
      * Type: Dll Hijack
      * Method: IFileOperation
@@ -339,9 +341,9 @@ akagi64.exe 61 c:\windows\system32\charmap.exe
      * Component(s): wow64log.dll
      * Implementation: ucmWow64LoggerMethod
      * Works from: Windows 7 (7600)
-     * Fixed in: unfixed :see_no_evil:
-        * How: -
-      * Code status: added in v2.7.0
+     * Fixed in: Windows 11 24H2/25H2 (26100/26200)
+        * How: Internal Windows loader changes
+      * Code status: removed starting from v3.7.0 :tractor:
 31. Author: Enigma0x3
      * Type: Shell API
      * Method: Registry key manipulation
@@ -401,9 +403,9 @@ akagi64.exe 61 c:\windows\system32\charmap.exe
      * Component(s): Attacker defined
      * Implementation: ucmJunctionMethod
      * Works from: Windows 7 (7600)
-     * Fixed in: unfixed :see_no_evil:
-        * How: -
-      * Code status: added in v2.7.4
+     * Fixed in: Windows 11 24H2/25H2 (26100/26200)
+        * How: WUSA changes
+      * Code status: removed starting from v3.7.0 :tractor:
 37. Author: Ernesto Fernandez, Thomas Vanhoutte
      * Type: Dll Hijack
      * Method: SxS DotLocal, NTFS reparse point
@@ -411,9 +413,9 @@ akagi64.exe 61 c:\windows\system32\charmap.exe
      * Component(s): GdiPlus.dll
      * Implementation: ucmSXSDccwMethod
      * Works from: Windows 7 (7600)
-     * Fixed in: unfixed :see_no_evil:
-        * How: -
-      * Code status: added in v2.7.5
+     * Fixed in: Windows 11 24H2/25H2 (26100/26200)
+        * How: Internal Windows loader changes, WUSA changes
+      * Code status: removed starting from v3.7.0 :tractor:
 38. Author: Clement Rouault
      * Type: Whitelisted component
      * Method: APPINFO command line spoofing
@@ -561,9 +563,9 @@ akagi64.exe 61 c:\windows\system32\charmap.exe
      * Component(s): Attacker defined
      * Implementation: ucmDirectoryMockMethod
      * Works from: Windows 7 (7600)
-     * Fixed in: unfixed :see_no_evil:
-        * How: -		
-      * Code status: added in v3.0.4
+     * Fixed in: Windows 11 24H2/25H2 (26100/26200)
+        * How: appinfo changes		
+      * Code status: removed starting from v3.7.0 :tractor:
 53. Author: Emeric Nasi
      * Type: Shell API
      * Method: Registry key manipulation
@@ -593,7 +595,7 @@ akagi64.exe 61 c:\windows\system32\charmap.exe
      * Works from: Windows 7 (7600)
      * Fixed in: Windows 10 RS5 (17763), a part of patch, 2024 year
         * How: When integrity level of an UIAccess token is lowered, the UIAccess property is removed
-      * Code status: added in v3.1.5
+      * Code status: removed starting from v3.7.0 :tractor:
 56. Author: Hashim Jawad
      * Type: Shell API
      * Method: Registry key manipulation
@@ -603,7 +605,7 @@ akagi64.exe 61 c:\windows\system32\charmap.exe
      * Works from: Windows 10 (17134)
      * Fixed in: Windows 11 (22000)
         * How: Windows components redesign
-      * Code status: removed starting from v3.5.7 :tractor:
+      * Code status: removed starting from v3.7.0 :tractor:
 57. Author: Leo Davidson derivative by Win32/Gapz
      * Type: Dll Hijack
      * Method: IFileOperation
@@ -621,9 +623,9 @@ akagi64.exe 61 c:\windows\system32\charmap.exe
      * Component(s): Attacker defined
      * Implementation: ucmEditionUpgradeManagerMethod
      * Works from: Windows 10 (14393)
-     * Fixed in: unfixed :see_no_evil:
-        * How: -
-      * Code status: added in v3.2.0
+     * Fixed in: Windows 11 24H2/25H2 (26100/26200)
+        * How: Current user environment variable %windir% ignored
+      * Code status: removed starting from v3.7.0 :tractor:
 59. Author: James Forshaw
      * Type: AppInfo ALPC
      * Method: RAiLaunchAdminProcess and DebugObject
@@ -693,7 +695,7 @@ akagi64.exe 61 c:\windows\system32\charmap.exe
      * Works from: Windows 7 (7600)
      * Fixed in: Windows 11 24H2 (26100)
         * How: Side effect of Windows changes
-      * Code status: added in v3.5.2
+      * Code status: removed starting from v3.7.0 :tractor:
 66. Author: Arush Agarampur
      * Type: Elevated COM interface
      * Method: IFwCplLua, Shell Protocol Hijack
@@ -703,7 +705,7 @@ akagi64.exe 61 c:\windows\system32\charmap.exe
      * Works from: Windows 7 (7600)
      * Fixed in: Windows 11 24H2 (26100)
         * How: Side effect of Windows changes
-      * Code status: added in v3.5.3
+      * Code status: removed starting from v3.7.0 :tractor:
 67. Author: Arush Agarampur
      * Type: Shell API
      * Method: Shell Protocol Hijack
@@ -732,9 +734,9 @@ akagi64.exe 61 c:\windows\system32\charmap.exe
      * Implementation: ucmPcaMethod
      * Works from: Windows 7 (7600)
      * AlwaysNotify compatible
-     * Fixed in: unfixed :see_no_evil:
-        * How: -
-      * Code status: added in v3.5.6
+     * Fixed in: Windows 11 24H2/25H2 (26100)
+        * How: Current user environment variable %windir% ignored
+      * Code status: removed starting from v3.7.0 :tractor:
 70. Author: V3ded
      * Type: Shell API
      * Method: Registry key manipulation
@@ -772,9 +774,9 @@ akagi64.exe 61 c:\windows\system32\charmap.exe
      * Component(s): Attacker defined
      * Implementation: ucmDotNetSerialMethod
      * Works from: Windows 7 RTM (7600)
-     * Fixed in: unfixed :see_no_evil:
-        * How: -
-      * Code status: added in v3.6.0
+     * Fixed in: Windows 11 24H2/25H2 (26100)
+        * How: EventViewer redesign
+      * Code status: removed starting from v3.7.0 :tractor:
 74. Author: zcgonvh
      * Type: Elevated COM interface
      * Method: IElevatedFactoryServer
@@ -825,7 +827,7 @@ akagi64.exe 61 c:\windows\system32\charmap.exe
      * AlwaysNotify compatible
      * Fixed in: Windows 10 (19041), a part of patch, 2024? year
         * How: Side effect of Windows changes
-      * Code status: added in v3.6.5
+      * Code status: removed starting from v3.7.0 :tractor:
 79. Author: James Forshaw and Stefan Kanthak
      * Type: GUI Hack
      * Method: UIPI bypass with token modification
@@ -835,7 +837,7 @@ akagi64.exe 61 c:\windows\system32\charmap.exe
      * Works from: Windows 7 (7600)
      * Fixed in: Windows 10 RS5 (17763), a part of patch, 2024 year
         * How: When integrity level of an UIAccess token is lowered, the UIAccess property is removed
-      * Code status: added in v3.6.6
+      * Code status: removed starting from v3.7.0 :tractor:
 80. Author: R41N3RZUF477
      * Type: Shell API
      * Method: Environment variables expansion, Dll Hijack
@@ -844,9 +846,9 @@ akagi64.exe 61 c:\windows\system32\charmap.exe
      * Implementation: ucmRequestTraceMethod
      * Works from: Windows 11 (26100)
      * AlwaysNotify compatible
-     * Fixed in: unfixed :see_no_evil:
-        * How: -
-      * Code status: added in v3.6.7
+     * Fixed in: Windows 11 25H2 (26200)
+        * How: Side effect of Windows changes
+      * Code status: removed starting from v3.7.0 :tractor:
 81. Author: R41N3RZUF477
      * Type: Shell API
      * Method: Environment variables expansion, Dll Hijack, UIPI bypass
@@ -858,6 +860,16 @@ akagi64.exe 61 c:\windows\system32\charmap.exe
      * Fixed in: unfixed :see_no_evil:
         * How: -
       * Code status: added in v3.6.8
+82. Author: WZ
+     * Type: Shell API
+     * Method: UICleanmgrAdminHelper, UICleanmgrHelper
+     * Target(s): \system32\SystemSettingsAdminFlows.exe
+     * Component(s): Action.exe
+     * Implementation: ucmCleanMgrAdminMethod
+     * Works from: Windows 10 (19041)
+     * Fixed in: unfixed :see_no_evil:
+        * How: -
+      * Code status: added in v3.7.0
 
 </details>
 
@@ -891,16 +903,15 @@ The most effective protection against UAC bypass techniques is using an account 
 UACMe is written in C and requires Microsoft Visual Studio 2019 or later to build from source.
 
 ### Prerequisites
-* **IDE**: Microsoft Visual Studio 2019 or 2022
+* **IDE**: Microsoft Visual Studio 2019/2022/2026 and later version
 * **SDK Requirements**:
-  * Windows 8.1 or Windows 10 SDK (tested with 19041 version)
-  * NET Framework SDK (tested with 4.8 version)
+  * Windows 8.1 or Windows 10/11 SDK (tested with 19041/26100 version)
 
 ### Build Steps
 
 1. **Configure Platform ToolSet** (Project->Properties->General):
-   * For Visual Studio 2019: Select v142
    * For Visual Studio 2022: Select v143
+   * For Visual Studio 2026: Select v145
 
 2. **Set Target Platform Version** (Project->Properties->General):
    * For v140: Select 8.1 (Windows 8.1 SDK must be installed)
@@ -966,6 +977,7 @@ BTC (Bitcoin): bc1qzkvtpa0053cagf35dqmpvv9k8hyrwl7krwdz84q39mcpy68y6tmqsju0g4
 * Advanced Windows Task Scheduler Playbook - Part.2 from COM to UAC bypass and get SYSTEM directly, http://www.zcgonvh.com/post/Advanced_Windows_Task_Scheduler_Playbook-Part.2_from_COM_to_UAC_bypass_and_get_SYSTEM_dirtectly.html
 * Bypassing UAC with SSPI Datagram Contexts, https://splintercod3.blogspot.com/p/bypassing-uac-with-sspi-datagram.html
 * Mitigate some Exploits for Windows’® UAC, https://skanthak.hier-im-netz.de/uacamole.html
+* Here's a BYPASS for you, https://mp.weixin.qq.com/s/D_Hchnzlv18naeJrYVJi1A
 
 # Authors
 

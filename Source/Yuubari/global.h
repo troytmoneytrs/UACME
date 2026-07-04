@@ -1,12 +1,12 @@
 /*******************************************************************************
 *
-*  (C) COPYRIGHT AUTHORS, 2014 - 2022
+*  (C) COPYRIGHT AUTHORS, 2014 - 2026
 *
 *  TITLE:       GLOBAL.H
 *
-*  VERSION:     1.54
+*  VERSION:     1.62
 *
-*  DATE:        02 Dec 2022
+*  DATE:        21 May 2026
 *
 *  Common header file for the program support routines.
 *
@@ -43,7 +43,7 @@
 #include "shared\cmdline.h"
 #include "consts.h"
 #include "logger.h"
-#include "wintrustex.h"
+#include "shared\wintrustex.h"
 #include "sup.h"
 #include "cui.h"
 

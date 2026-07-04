@@ -1,12 +1,12 @@
 /*******************************************************************************
 *
-*  (C) COPYRIGHT AUTHORS, 2018 - 2022
+*  (C) COPYRIGHT AUTHORS, 2018 - 2026
 *
 *  TITLE:       ELVINT.H
 *
-*  VERSION:     3.62
+*  VERSION:     3.70
 *
-*  DATE:        04 Jul 2022
+*  DATE:        15 May 2026
 *
 *  Prototypes and definitions for elevated interface methods.
 *
@@ -27,6 +27,12 @@ typedef interface IIEAdminBrokerObject IIEAdminBrokerObject;
 typedef interface IActiveXInstallBroker IActiveXInstallBroker;
 typedef interface IWscAdmin IWscAdmin;
 typedef interface IElevatedFactoryServer IElevatedFactoryServer;
+
+//
+// Belongs to autoelevated COM-server.
+//
+typedef interface UICleanmgrHelper UICleanmgrHelper;
+typedef interface UICleanmgrAdminHelper UICleanmgrAdminHelper;
 
 //VTBL DEF
 
@@ -483,6 +489,93 @@ typedef struct IElevatedFactoryServerVtbl {
 
 } *PIElevatedFactoryServerVtbl;
 
+
+typedef struct UICleanmgrHelperVtbl {
+
+    BEGIN_INTERFACE
+
+        HRESULT(STDMETHODCALLTYPE* QueryInterface)(
+            __RPC__in UICleanmgrHelper* This,
+            __RPC__in REFIID riid,
+            _COM_Outptr_ void** ppvObject);
+
+        ULONG(STDMETHODCALLTYPE* AddRef)(
+            __RPC__in UICleanmgrHelper* This);
+
+        ULONG(STDMETHODCALLTYPE* Release)(
+            __RPC__in UICleanmgrHelper* This);
+
+        HRESULT(STDMETHODCALLTYPE* Initialize)(
+            __RPC__in UICleanmgrHelper* This,
+            __RPC__in LPCWSTR pVolumePath);
+
+        HRESULT(STDMETHODCALLTYPE* GetCount)(
+            __RPC__in UICleanmgrHelper* This,
+            __RPC__out ULONGLONG* pCount);
+
+        HRESULT(STDMETHODCALLTYPE* GetGUID)(
+            __RPC__in UICleanmgrHelper* This,
+            __RPC__in ULONGLONG index,
+            _COM_Outptr_ LPWSTR* ppStr);
+
+        HRESULT(STDMETHODCALLTYPE* GetDisplayName)(
+            __RPC__in UICleanmgrHelper* This,
+            __RPC__in ULONGLONG index,
+            _COM_Outptr_ LPWSTR* ppStr);
+
+        HRESULT(STDMETHODCALLTYPE* GetPluginSubKeyName)(
+            __RPC__in UICleanmgrHelper* This,
+            __RPC__in ULONGLONG index,
+            _COM_Outptr_ LPWSTR* ppStr);
+
+        HRESULT(STDMETHODCALLTYPE* GetDescription)(
+            __RPC__in UICleanmgrHelper* This,
+            __RPC__in ULONGLONG index,
+            _COM_Outptr_ LPWSTR* ppStr);
+
+        HRESULT(STDMETHODCALLTYPE* GetAutorun)(
+            __RPC__in UICleanmgrHelper* This,
+            __RPC__in ULONGLONG index,
+            __RPC__out BOOL* pOut);
+
+        HRESULT(STDMETHODCALLTYPE* Scan)(
+            __RPC__in UICleanmgrHelper* This,
+            __RPC__in ULONGLONG index,
+            __RPC__out ULONGLONG* pOut);
+
+        HRESULT(STDMETHODCALLTYPE* Purge)(
+            __RPC__in UICleanmgrHelper* This,
+            __RPC__in ULONGLONG index,
+            __RPC__in ULONGLONG flags);
+
+    END_INTERFACE
+
+} UICleanmgrHelperVtbl, * PUICleanmgrHelperVtbl;
+
+typedef struct UICleanmgrAdminHelperVtbl {
+
+    BEGIN_INTERFACE
+
+        HRESULT(STDMETHODCALLTYPE* QueryInterface)(
+            __RPC__in UICleanmgrAdminHelper* This,
+            __RPC__in REFIID riid,
+            _COM_Outptr_ void** ppvObject);
+
+        ULONG(STDMETHODCALLTYPE* AddRef)(
+            __RPC__in UICleanmgrAdminHelper* This);
+
+        ULONG(STDMETHODCALLTYPE* Release)(
+            __RPC__in UICleanmgrAdminHelper* This);
+
+        HRESULT(STDMETHODCALLTYPE* CreateCleanmgrHelper)(
+            __RPC__in UICleanmgrAdminHelper* This,
+            _COM_Outptr_ UICleanmgrHelper** ppHelper);
+
+    END_INTERFACE
+
+} *PUICleanmgrAdminHelperVtbl;
+
+
 // INTERFACE DEF
 
 interface IColorDataProxy { CONST_VTBL struct IColorDataProxyVtbl* lpVtbl; };
@@ -494,3 +587,5 @@ interface IIEAdminBrokerObject { CONST_VTBL struct IIEAdminBrokerObjectVtbl* lpV
 interface IActiveXInstallBroker { CONST_VTBL struct IActiveXInstallBrokerVtbl* lpVtbl; };
 interface IWscAdmin { CONST_VTBL struct IWscAdminVtbl* lpVtbl; };
 interface IElevatedFactoryServer { CONST_VTBL struct IElevatedFactoryServerVtbl* lpVtbl; };
+interface UICleanmgrHelper { CONST_VTBL PUICleanmgrHelperVtbl lpVtbl; };
+interface UICleanmgrAdminHelper { CONST_VTBL PUICleanmgrAdminHelperVtbl lpVtbl; };

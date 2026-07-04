@@ -1,12 +1,12 @@
 /*******************************************************************************
 *
-*  (C) COPYRIGHT AUTHORS, 2014 - 2025
+*  (C) COPYRIGHT AUTHORS, 2014 - 2026
 *
 *  TITLE:       SUP.H
 *
-*  VERSION:     3.68
+*  VERSION:     3.70
 *
-*  DATE:        07 Mar 2025
+*  DATE:        15 May 2026
 *
 *  Common header file for the program support routines.
 *
@@ -77,6 +77,34 @@ typedef VOID(WINAPI* PSUP_UAS_ENUMERATION_CALLBACK_FUNCTION)(
 //
 // Shell association end.
 //
+
+typedef struct _SUP_EXECUTABLE_ENTRY {
+    LIST_ENTRY ListEntry;
+
+    //
+    // Offset in WCHARs from FullPath to file name.
+    //
+    USHORT NameOffset;
+
+    //
+    // Full NT path.
+    //
+    WCHAR FullPath[MAX_PATH * 2];
+
+} SUP_EXECUTABLE_ENTRY, * PSUP_EXECUTABLE_ENTRY;
+
+#define SUP_EXECUTABLE_FILENAME(_Entry) \
+    ((LPCWSTR)&((_Entry)->FullPath[(_Entry)->NameOffset]))
+
+typedef struct _SUP_EXECUTABLE_LIST {
+    LIST_ENTRY ListHead;
+    ULONG Count;
+} SUP_EXECUTABLE_LIST, * PSUP_EXECUTABLE_LIST;
+
+typedef BOOLEAN(CALLBACK* PSUP_ENUM_PATH_CALLBACK)(
+    _In_ LPCWSTR PathEntry,
+    _In_opt_ PVOID Context
+    );
 
 typedef struct _SXS_SEARCH_CONTEXT {
     LPWSTR DllName;
@@ -198,7 +226,8 @@ PBYTE supLdrQueryResourceData(
     _Out_ PULONG DataSize);
 
 VOID supMasqueradeProcess(
-    _In_ BOOL Restore);
+    _In_ BOOL Restore,
+    _In_ LPCWSTR Target);
 
 DWORD supExpandEnvironmentStrings(
     _In_ LPCWSTR lpSrc,
@@ -496,6 +525,19 @@ BOOLEAN supReplaceVersionInfo(
     _In_ PBYTE lpResource,
     _In_ DWORD dwResourceSize,
     _In_ DWORD dwKey);
+
+BOOLEAN supEnumPathEnvironmentVariable(
+    _In_ PSUP_ENUM_PATH_CALLBACK Callback,
+    _In_opt_ PVOID Context);
+
+PSUP_EXECUTABLE_ENTRY supSelectRandomExecutable(
+    _In_ PSUP_EXECUTABLE_LIST List);
+
+BOOLEAN supBuildSystemRootExecutableList(
+    _Inout_ PSUP_EXECUTABLE_LIST List);
+
+VOID supFreeExecutableList(
+    _Inout_ PSUP_EXECUTABLE_LIST List);
 
 #ifdef _DEBUG
 #define supDbgMsg(Message)  OutputDebugString(Message)

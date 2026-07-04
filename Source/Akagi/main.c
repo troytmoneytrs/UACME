@@ -1,12 +1,12 @@
 /*******************************************************************************
 *
-*  (C) COPYRIGHT AUTHORS, 2014 - 2022
+*  (C) COPYRIGHT AUTHORS, 2014 - 2026
 *
 *  TITLE:       MAIN.C
 *
-*  VERSION:     3.61
+*  VERSION:     3.70
 *
-*  DATE:        22 Jun 2022
+*  DATE:        19 May 2026
 *
 *  Program entry point.
 *
@@ -164,8 +164,6 @@ NTSTATUS WINAPI ucmMain(
     if (!NT_SUCCESS(Status))
         return Status;
 
-    supMasqueradeProcess(FALSE);
-
     return MethodsManagerCall(method);
 }
 
@@ -182,12 +180,10 @@ VOID __cdecl main()
 {
 #ifdef _UCM_CONSOLE
     ULONG result;
-
     result = StubInit(ucmMain);
     ucmConsolePrintValueUlong(TEXT("[+] ucmMain"), result, TRUE);
     ucmConsoleRelease();
     ExitProcess(result);
-
 #else
     ExitProcess(StubInit(ucmMain));
 #endif

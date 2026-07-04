@@ -1,3 +1,22 @@
+#/*******************************************************************************
+*
+*  (C) COPYRIGHT AUTHORS, 2014 - 2026
+*
+*  TITLE:       WINTRUSTEX.H
+*
+*  VERSION:     1.61
+*
+*  DATE:        12 Feb 2026
+*
+*  Header file for the undocumented WinTrust features.
+*
+* THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF
+* ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED
+* TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
+* PARTICULAR PURPOSE.
+*
+*******************************************************************************/
+
 #pragma once
 
 typedef enum _SIGNATURE_INFO_TYPE {

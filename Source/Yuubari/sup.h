@@ -1,12 +1,12 @@
 #/*******************************************************************************
 *
-*  (C) COPYRIGHT AUTHORS, 2014 - 2021
+*  (C) COPYRIGHT AUTHORS, 2014 - 2026
 *
 *  TITLE:       SUP.H
 *
-*  VERSION:     1.52
+*  VERSION:     1.62
 *
-*  DATE:        23 Nov 2021
+*  DATE:        21 May 2026
 *
 *  Common header file for the program support routines.
 *

@@ -1,12 +1,12 @@
 #/*******************************************************************************
 *
-*  (C) COPYRIGHT AUTHORS, 2014 - 2020
+*  (C) COPYRIGHT AUTHORS, 2014 - 2026
 *
 *  TITLE:       BASIC.H
 *
-*  VERSION:     1.49
+*  VERSION:     1.62
 *
-*  DATE:        11 Nov 2019
+*  DATE:        21 May 2026
 *
 *  Header file for the basic UAC info scan.
 *
@@ -21,7 +21,8 @@
 typedef struct _UAC_BASIC_DATA {
     LPWSTR Name;
     DWORD Value;
-    BOOL IsValueBool;
+    BOOL ThreatAsBool;
+    BOOL ThreatAsToggle;
 } UAC_BASIC_DATA, *PUAC_BASIC_DATA;
 
 VOID ScanBasicUacData(

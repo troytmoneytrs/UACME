@@ -128,9 +128,6 @@
     <ClInclude Include="..\Shared\_filename.h">
       <Filter>minirtl</Filter>
     </ClInclude>
-    <ClInclude Include="wintrustex.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="logger.h">
       <Filter>Header Files</Filter>
     </ClInclude>

@@ -4,9 +4,9 @@
 *
 *  TITLE:       MAIN.C
 *
-*  VERSION:     1.61
+*  VERSION:     1.62
 *
-*  DATE:        12 Feb 2026
+*  DATE:        21 May 2026
 *
 *  Program entry point.
 *
@@ -121,20 +121,21 @@ VOID WINAPI BasicDataOutputCallback(
     if (Data == NULL)
         return;
 
-    sz = (_strlen(Data->Name) * sizeof(WCHAR)) + MAX_PATH;
+    sz = (MAX_PATH + _strlen(Data->Name)) * sizeof(WCHAR);
     lpLog = (LPWSTR)supHeapAlloc(sz);
     if (lpLog) {
         _strcpy(lpLog, Data->Name);
-        _strcat(lpLog, TEXT("="));
-        if (Data->IsValueBool) {
-            if (Data->Value == 0)
-                _strcat(lpLog, TEXT("Disabled"));
-            else
-                _strcat(lpLog, TEXT("Enabled"));
-        }
-        else {
-            ultostr(Data->Value, _strend(lpLog));
-        }
+        _strcat(lpLog, TEXT(" = "));
+		if (Data->ThreatAsToggle) {
+			_strcat(lpLog, (Data->Value == 0) ? TEXT("Disabled") : TEXT("Enabled"));
+		}
+		else
+			if (Data->ThreatAsBool) {
+				_strcat(lpLog, (Data->Value == 0) ? TEXT("FALSE") : TEXT("TRUE"));
+			}
+			else {
+				ultostr(Data->Value, _strend(lpLog));
+			}
         LoggerWrite(g_LogFile, lpLog, TRUE);
         cuiPrintText(lpLog, TRUE);
         supHeapFree(lpLog);

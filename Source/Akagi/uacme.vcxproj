@@ -486,7 +486,7 @@
       <AdditionalManifestFiles>akagi.manifest</AdditionalManifestFiles>
     </Manifest>
     <PostBuildEvent>
-      <Command>\Utils\StripDebug.exe .\output\$(Platform)\$(Configuration)\Akagi32.exe</Command>
+      <Command>\Utils\StripDebug.exe .\output\$(Platform)\$(Configuration)\Akagi32Con.exe</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -619,7 +619,7 @@
       <AdditionalManifestFiles>akagi.manifest</AdditionalManifestFiles>
     </Manifest>
     <PostBuildEvent>
-      <Command>\Utils\StripDebug.exe .\output\$(Platform)\$(Configuration)\Akagi64.exe</Command>
+      <Command>\Utils\StripDebug.exe .\output\$(Platform)\$(Configuration)\Akagi64Con.exe</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

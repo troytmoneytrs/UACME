@@ -1,12 +1,12 @@
 /*******************************************************************************
 *
-*  (C) COPYRIGHT AUTHORS, 2015 - 2025
+*  (C) COPYRIGHT AUTHORS, 2015 - 2026
 *
 *  TITLE:       CONSTS.H
 *
-*  VERSION:     3.69
+*  VERSION:     3.70
 *
-*  DATE:        14 Dec 2025
+*  DATE:        15 May 2026
 *
 *  Global consts definition file.
 *
@@ -28,9 +28,9 @@
 #define ISDB_PROGRAMNAME                6
 
 #define UCM_VERSION_MAJOR       3
-#define UCM_VERSION_MINOR       6
-#define UCM_VERSION_REVISION    9
-#define UCM_VERSION_BUILD       2512
+#define UCM_VERSION_MINOR       7
+#define UCM_VERSION_REVISION    0
+#define UCM_VERSION_BUILD       2605
 
 #define SUPRUNPROCESS_TIMEOUT_DEFAULT 12000
 
@@ -181,6 +181,7 @@
 #define QUICKASSIST_EXE             L"QuickAssist.exe"
 #define SDCLT_EXE                   L"sdclt.exe"
 #define SLUI_EXE                    L"slui.exe"
+#define SYSTEMADMFLOWS_EXE          L"SystemSettingsAdminFlows.exe"
 #define TASKHOSTW_EXE               L"taskhostw.exe"
 #define WINSAT_EXE                  L"winsat.exe"
 #define WINVER_EXE                  L"winver.exe"
@@ -217,6 +218,11 @@
 //
 #define EVENTVWR_MSC                L"eventvwr.msc"
 #define WMIMGMT_MSC                 L"WmiMgmt.msc"
+
+//
+// Expected payload name for COM server.
+//
+#define ACTIVE_EXE                  L"Active.exe" //PYSH
 
 //
 // Units specific values
